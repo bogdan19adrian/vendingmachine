@@ -2,7 +2,7 @@ package machine.service;
 
 
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import machine.api.ProductDTO;
@@ -25,31 +25,42 @@ public class ProductService {
 
     public ProductDTO createProduct(ProductDTO request) {
         final ProductDocument productDocument = modelMapper.map(request, ProductDocument.class);
+        productDocument.setId(UUID.randomUUID().toString());
+        productDocument.setAmountAvailable(request.getAmount());
         productRepository.save(productDocument);
-        return modelMapper.map(productDocument, ProductDTO.class);
+        return modelMapper.map(productRepository.save(productDocument), ProductDTO.class);
     }
 
     public ProductDTO updateProduct(ProductDTO request) {
-        AtomicReference<ProductDTO> updated = new AtomicReference<>();
         Optional<ProductDocument> productDocument = productRepository.findById(request.getId());
-        productDocument.ifPresentOrElse(doc -> {
-                    final ProductDTO destination = modelMapper.map(doc, ProductDTO.class);
-                    updated.set(mapForUpdateService.mapForUpdate(request, destination));
-                    productRepository.save(modelMapper.map(updated, ProductDocument.class));
-                },
-                () -> {
-                    log.error(Message.PRODUCT_NOT_FOUND.with(request.getId()));
-                    throw new BadRequestException(Message.PRODUCT_NOT_FOUND.with(request.getId()));
-                });
 
-        return updated.get();
+        if (productDocument.isEmpty()) {
+            log.error(Message.PRODUCT_NOT_FOUND.with(request.getId()));
+            throw new BadRequestException(Message.PRODUCT_NOT_FOUND.with(request.getId()));
+        }
+
+        final ProductDTO destination = modelMapper.map(productDocument.get(), ProductDTO.class);
+
+        return modelMapper.map(
+                productRepository.save(
+                        modelMapper.map(
+                                mapForUpdateService.mapForUpdate(request, destination), ProductDocument.class)),
+                ProductDTO.class);
+
     }
 
-    public void deleteProduct(String id){
+    public void deleteProduct(String id) {
         productRepository.deleteById(id);
     }
 
-    public ProductDTO getProductById(String id){
-        return modelMapper.map(productRepository.findById(id), ProductDTO.class);
+    public ProductDTO getProductById(String id) {
+        Optional<ProductDocument> document = productRepository.findById(id);
+        if (document.isEmpty()) {
+            log.error(Message.PRODUCT_NOT_FOUND.with(id));
+            throw new BadRequestException(Message.PRODUCT_NOT_FOUND.with(id));
+        }
+        return modelMapper.map(document.get(), ProductDTO.class);
+
+
     }
 }

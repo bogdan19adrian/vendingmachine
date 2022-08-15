@@ -19,5 +19,6 @@ public class MapForUpdateService {
         if(source.getAmount() != null) {
             destination.setAmountAvailable(destination.getAmountAvailable() + source.getAmount());
         }
+        return destination;
     }
 }
