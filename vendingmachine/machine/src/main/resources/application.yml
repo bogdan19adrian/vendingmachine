@@ -1,0 +1,15 @@
+#Local MongoDB config
+spring:
+  application:
+    name: vending_machine
+  data:
+    mongodb:
+      authentication-database: admin
+      username: root
+      password: rootpassword
+      database: user_db
+      port: 27017
+      host: localhost
+
+server:
+  port: 8819
